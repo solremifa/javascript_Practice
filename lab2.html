@@ -1,4 +1,3 @@
-lab.html
 <!DOCTYPE html>
 <html>
 <head>
@@ -28,10 +27,10 @@ lab.html
 </head>
 <body>
 
-<h2>두더지 잡기 게임</h2>
-<div>점수: <span id="score">0</span></div>
-<div>남은 시간: <span id="time">10</span></div>
-<button id="startBtn">게임 시작</button>
+    <h2>두더지 잡기 게임</h2>
+    <div>점수: <span id="score">0</span></div>
+    <div>남은 시간: <span id="time">10</span></div>
+    <button id="startBtn">게임 시작</button>
 
 <div class="board" id="board"></div>
 
@@ -60,14 +59,11 @@ lab.html
   - 각 셀에 className으로 "cell"을 지정한다.
   - 각 셀에 dataset.index로 0~8까지의 인덱스를 저장한다.
   - board.appendChild()를 사용하여 생성한 div를 board에 추가한다.
-
-  ※ 힌트:
-  - document.createElement("div")
-  - div.className = "cell"
-  - div.dataset.index = i
-  - board.appendChild(div)
   */
+
  // for 반복문으로 9까지 굴리면서 i로 인덱스 설정
+ // x라는 임의의 변수로 셀 개수를 통제
+ // 이 x라는 값을 어떻게 받을 것인지를 결정해야함
     for (let i = 0; i < 9; i++) {
         const div = document.createElement("div");
         div.className = "cell";
@@ -83,13 +79,6 @@ lab.html
   - 0 ~ 8 사이의 랜덤한 숫자를 생성한다.
   - 랜덤하게 선택된 셀에 "mole" 클래스를 추가하고, 🐹 이모지를 표시한다.
   - currentIndex 변수에 현재 두더지 위치를 저장한다.
-
-  ※ 힌트:
-  - cells.forEach()로 모든 셀 순회
-  - c.classList.remove("mole"), c.textContent = ""
-  - Math.floor(Math.random() * cells.length)
-  - cells[rand].classList.add("mole")
-  - cells[rand].textContent = "🐹"
   */
 
   // cells 상수가 모든 cell을 담고 있어야 함.
@@ -122,13 +111,6 @@ lab.html
   - 클릭한 셀의 인덱스(dataset.index)와 currentIndex를 비교한다.
   - 두더지가 있는 셀을 클릭했다면 score를 1 증가시킨다.
   - 변경된 점수를 scoreEl에 표시한다.
-
-  ※ 힌트:
-  - cells.forEach(cell => { ... })
-  - cell.addEventListener("click", () => { ... })
-  - Number(cell.dataset.index) === currentIndex
-  - score++
-  - scoreEl.textContent = score
   */
     cells.forEach(cell => {
         cell.addEventListener("click", () => {
@@ -154,14 +136,6 @@ lab.html
   - setTimeout()을 사용하여 10초 후 게임을 종료한다.
   - 게임 종료 시: clearInterval()로 타이머 중지, timer를 null로 초기화,
     alert()로 최종 점수를 표시한다.
-
-  ※ 힌트:
-  - startBtn.addEventListener("click", () => { ... })
-  - if (timer) return;
-  - timer = setInterval(showMole, 800)
-  - setTimeout(() => { ... }, 10000)
-  - clearInterval(timer)
-  - alert("게임 종료! 점수: " + score)
   */
 
     // time 변수를 1씩 감소시키고, 해당 값을 화면에 표시하는 함수
