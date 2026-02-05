@@ -256,6 +256,7 @@
 
                 // TODO: 점수 객체를 초기화 (win, draw, lose 모두 0으로)
                 this.humanScore = { win: 0, draw: 0, lose: 0};
+                this.computerScore = { win: 0, draw: 0, lose: 0};
             
 
                 // TODO: 경과 시간을 0으로 초기화
@@ -388,7 +389,7 @@
                 // 컴퓨터는 반대 결과 적용 (win↔lose, draw는 동일)
                 const opposite = { win: 'lose', lose: 'win', draw: 'draw' };
                 // TODO: 컴퓨터 점수 증가
-                // 힌트: this.computerScore[opposite[result]]++;
+                this.computerScore[opposite[result]]++;
 
 
                 // 화면 업데이트 (이 부분은 완성되어 있습니다)
@@ -417,9 +418,8 @@
             judge(human, computer) {
                 // TODO: 같은 것을 냈으면 무승부를 반환하세요
                 // 힌트: if (human === computer) return 'draw';
-                if (human === computer) {
-                    return 'draw';
-                }
+                if (human === computer) return 'draw';
+                
 
                 /*
                  * TODO: 승패를 판정하세요
@@ -517,9 +517,9 @@
                  *
                  * 힌트: Math.floor()를 사용하세요
                  */
-                const h = Math.floor(seconds / 3600); // TODO: 시간 계산
-                const m = Math.floor(seconds % 3600) / 60; // TODO: 분 계산
-                const s = Math.floor(seconds % 60); // TODO: 초 계산
+                const h = Math.floor(this.seconds / 3600); // TODO: 시간 계산
+                const m = Math.floor((this.seconds % 3600) / 60); // TODO: 분 계산
+                const s = this.seconds % 60; // TODO: 초 계산
 
 
                 /*
