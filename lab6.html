@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <style>
+        /* [UI 디자인 가이드] 
+           1. 시각적 계층 구조: 그라데이션 배경으로 시선 집중
+           2. 사용자 경험(UX): Hover 효과와 Transition으로 인터랙션 강화
+           3. 상태 피드백: 완료된 항목은 불투명도(opacity)를 조절하여 시각적 분리
+        */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .input-area { display: flex; gap: 10px; margin-bottom: 20px; }
+        #todoInput { flex: 1; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px; outline: none; }
+        #todoInput:focus { border-color: #667eea; }
+        #addBtn { padding: 15px 25px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; cursor: pointer; }
+        .filter-area { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .filter-btn { padding: 8px 20px; border: 2px solid #e0e0e0; background: white; border-radius: 20px; cursor: pointer; }
+        .filter-btn.active { background: #667eea; color: white; border-color: #667eea; }
+        .todo-item { display: flex; align-items: center; padding: 15px; background: #f8f9fa; border-radius: 10px; margin-bottom: 10px; }
+        .todo-item.completed { opacity: 0.6; }
+        .todo-item.completed .todo-text { text-decoration: line-through; color: #888; }
+        .todo-checkbox { width: 22px; height: 22px; margin-right: 15px; cursor: pointer; accent-color: #667eea; }
+        .todo-text { flex: 1; color: #333; }
+        .delete-btn { padding: 8px 15px; background: #ff6b6b; color: white; border: none; border-radius: 8px; cursor: pointer; opacity: 0; transition: 0.3s; }
+        .todo-item:hover .delete-btn { opacity: 1; }
+        .stats { text-align: center; color: #888; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0; }
+        .empty-message { text-align: center; color: #aaa; padding: 40px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>To-Do List</h1>
+        <div class="input-area">
+            <input type="text" id="todoInput" placeholder="할 일을 입력하세요...">
+            <button id="addBtn">추가</button>
+        </div>
+        <div class="filter-area">
+            <button class="filter-btn active" data-filter="all">전체</button>
+            <button class="filter-btn" data-filter="active">진행중</button>
+            <button class="filter-btn" data-filter="completed">완료</button>
+        </div>
+        <ul id="todoList"></ul>
+        <div class="stats" id="stats"></div>
+    </div>
+
+    <script>
+        /**
+        * 설계 목표:
+        * 1. 데이터 중심 설계: 화면을 직접 수정하지 않고, 데이터(Array)를 변경하면 화면이 따라오게 만든다.
+        * 2. 효율적 이벤트 처리: 개별 항목이 아닌 부모 요소에 이벤트를 위임하여 메모리 사용을 줄인다.
+        * 3. 상태 유지: 로컬 스토리지를 활용하여 브라우저 종료 후에도 데이터가 소실되지 않게 한다.
+        */
+
+        const todoApp = {
+            // 1. 데이터 저장소: 앱의 현재 상태를 담는 배열'
+            todos: [],
+        
+            // 앱이 시작되자마자 실행되어야 할 순서를 정의
+            init() {
+                this.loadFromStorage(); // 저장된 데이터가 있는지 확인
+                this.bindEvents();      // 사용자 클릭을 감시할 준비
+                this.render();           // 현재 상태를 화면에 출력
+            },
+        
+            // 어떤 동작이 발생했을 때 어떤 함수를 실행할지 길을 연결
+            bindEvents() {
+                // 추가 버튼 클릭 아니면 엔터 키 입력 시 addTodo 실행
+                document.getElementById('addBtn').addEventListener('click', () => this.addTodo());
+                document.getElementById('todoInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.addTodo();
+                });
+            
+                // 부모(ul)가 자식들의 클릭을 한 번에 관리하도록 설계
+                document.getElementById('todoList').addEventListener('click', (e) => {
+                    const id = parseInt(e.target.closest('.todo-item').dataset.id);
+
+                    // 체크박스 클릭 시 -> 상태 변경, 삭제 버튼 클릭 시 -> 데이터 삭제
+                    if (e.target.classList.contains('todo-checkbox')) this.toggleTodo(id);
+                    if (e.target.classList.contains('delete-btn')) this.deleteTodo(id);
+                });
+            },
+        
+            // todo 더하기
+            addTodo() {
+                // 1) 입력창의 값 받아오기, 공백은 trim()으로 제거
+                const input = document.getElementById('todoInput');
+                const text = input.value.trim();
+            
+                // 2) 아무것도 안쓰면 alert
+                if (!text) return alert('할 일을 적어주세요!');
+            
+                // 3) Date.now를 id로 해서 구조화
+                const newTodo = { id: Date.now(), text, completed: false };
+            
+                // 4) todos 배열에 넣고 저장 후 렌더링
+                this.todos.push(newTodo);
+                this.saveAndRender();
+                input.value = ''; // 입력창 비우기
+            },
+
+            // 완료 상태 로직
+            toggleTodo(id) {
+                // 배열에서 클릭된 ID와 일치하는 할 일을 찾음
+                const todo = this.todos.find(t => t.id === id);
+                
+                // 데이터가 존재한다면 
+                if (todo) {
+
+                    // 상태를 반전
+                    todo.completed = !todo.completed; 
+                    
+                    // 변경된 상태를 저장하고 화면에 반영
+                    this.saveAndRender();
+                }
+            },
+        
+            // 데이터 삭제 
+            deleteTodo(id) {
+                // filter를 사용함으로서 sparse배열 방지
+                this.todos = this.todos.filter(todo => todo.id !== id);
+                this.saveAndRender();
+            },
+        
+            // 화면 그리기 알고리즘 
+            // 데이터를 HTML로 변환
+            render() {
+                const list = document.getElementById('todoList');
+
+                // 기존 화면 비우기 
+                list.innerHTML = '';
+            
+                // 배열을 순회하며 데이터 개수만큼 HTML 태그 생성
+                this.todos.forEach(todo => {
+                    const li = document.createElement('li');
+                    li.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+                    li.dataset.id = todo.id;
+                    li.innerHTML = `
+                        <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''}>
+                        <span class="todo-text">${todo.text}</span>
+                        <button class="delete-btn">삭제</button>
+                    `;
+                    list.appendChild(li); // 조립된 태그를 화면 부모 요소에 추가
+                });
+            },
+        
+            // 브라우저의 LocalStorage를 사용하여 데이터 휘발 방지
+            saveAndRender() {
+                // 객체 배열은 바로 저장할 수 없으므로 JSON 문자열로 변환이 필수
+                localStorage.setItem('todos', JSON.stringify(this.todos));
+                this.render(); // 데이터가 바뀔 때마다 화면을 자동으로 다시 그리도록 호출
+            },
+        
+            loadFromStorage() {
+                const saved = localStorage.getItem('todos');
+                // 저장된 데이터가 있을 때만 가져오고 없으면 빈 배열 유지
+                if (saved) this.todos = JSON.parse(saved);
+            }
+        };
+
+        // 코드 시작
+        todoApp.init();
+    </script>
+</body>
+</html>
