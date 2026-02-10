@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Whack-a-Mole</title>
+  <style>
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .cell {
+      width: 100px;
+      height: 100px;
+      background: #ddd;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 40px;
+      cursor: pointer;
+    }
+    .mole {
+      background: gold;
+    }
+  </style>
+</head>
+<body>
+
+    <h2>두더지 잡기 게임</h2>
+    <div>셀 개수: <input type="number" id="cellNum" value="9"></div> 
+    <button id="setBtn">셀 생성</button>
+    <div>점수: <span id="score">0</span></div>
+    <div>남은 시간: <span id="time">10</span></div>
+    <button id="startBtn">게임 시작</button>
+
+<div class="board" id="board"></div>
+
+<script>
+    const board = document.getElementById("board");
+    const scoreEl = document.getElementById("score");
+    const startBtn = document.getElementById("startBtn");
+
+    // 남은 시간을 보여주는 기능 만들어보기
+    const timeEl = document.getElementById("time");
+
+    // 셀 개수를 입력받고 출력하는 기능
+    const cellNum = document.getElementById("cellNum");
+    const setBtn = document.getElementById("setBtn");
+
+    let score = 0;
+    let timer = null;
+    let currentIndex = -1;
+    
+    // 실제 화면상에 출력될 시간 값
+    let timeLefted = 10;
+
+    // 함수(setInterval)의 반환값을 제어하기 위한 변수
+    let timeInterval = null;
+
+    // cells를 전역에서 쓸 수 있도록 선언
+    let cells = [];
+
+  // 1. 보드 생성 (DOM Create)
+  /*
+  - 9개의 셀(div)을 동적으로 생성하여 board에 추가한다.
+  - 각 셀에 className으로 "cell"을 지정한다.
+  - 각 셀에 dataset.index로 0~8까지의 인덱스를 저장한다.
+  - board.appendChild()를 사용하여 생성한 div를 board에 추가한다.
+  */
+
+ // for 반복문으로 x까지 굴리면서 i로 인덱스 설정
+ // x라는 임의의 변수로 셀 개수를 통제
+ // 이 x라는 값을 어떻게 받을 것인지를 결정해야함
+
+ // setBtn 버튼을 클릭함으로서 셀이 생성되는 로직이 작동하게끔 구현
+    setBtn.addEventListener("click", () => {
+      const x = Number(cellNum.value);
+
+      // 중복 생성을 막기 위해 기존 보드를 비워주기
+      board.innerHTML = "";
+      cells = [];
+
+      for (let i = 0; i < x; i++) {
+          const div = document.createElement("div");
+          div.className = "cell";
+          div.dataset.index = i;
+
+          // 기존 코드는 클릭 이벤트를 페이지 로드 시 실행
+          // 하지만 현 코드는 버튼 생성 이벤트를 발생시키기 전까지 셀 생성이 안됨
+          // 그러니 클릭 이벤트를 셀 생성 루프 안에 처리 (for Each 사용 X)
+
+          /*
+          - 모든 셀에 클릭 이벤트를 등록한다.
+          - 클릭한 셀의 인덱스(dataset.index)와 currentIndex를 비교한다.
+          - 두더지가 있는 셀을 클릭했다면 score를 1 증가시킨다.
+          - 변경된 점수를 scoreEl에 표시한다.
+          */
+            div.addEventListener("click", () => {
+                // 클릭한 셀의 index를 숫자로 치환한 뒤 정답값(currentIndex)와 대조
+                if(Number(div.dataset.index) === currentIndex) {
+                    // 만약 동일한 값일 경우 점수를 1점 추가 후 해당 점수를 표시
+                  score++
+                  scoreEl.textContent = score;
+                  }
+              });
+
+              board.appendChild(div);
+              cells.push(div); // 전역 배열에 담기
+
+              }
+
+              // 셀 개수에 맞춰 그리드 열 개수 자동 조정
+              const cols = Math.ceil(Math.sqrt(x));
+              board.style.gridTemplateColumns = `repeat(${cols}, 100px)`;
+    });
+
+  // cells 상수가 모든 cell을 담고 있어야 함.
+  // const cells = document.querySelectorAll(".cell") 
+  // document에서 클래스 이름이 cell인 모든 요소를 찾아 cells라는 상수로 정의
+  // const cells = document.querySelectorAll(".cell");
+  // 단, 해당 코드는 실행 시점에 .cell 클래스가 없기 때문에 사용할 수 없음 (전역의 cells 배열을 사용하는것으로 갈음)
+  
+    
+
+
+  // 2. 랜덤 두더지 등장
+  /*
+  - 모든 셀에서 두더지를 제거한다 (mole 클래스 제거, 텍스트 비우기).
+  - 0 ~ 8 사이의 랜덤한 숫자를 생성한다.
+  - 랜덤하게 선택된 셀에 "mole" 클래스를 추가하고, 🐹 이모지를 표시한다.
+  - currentIndex 변수에 현재 두더지 위치를 저장한다.
+  */
+    function showMole() {
+        // forEach를 통해 cells를 순회하며 mole이라는 class를 전부 삭제
+        cells.forEach(c => {
+            c.classList.remove("mole");
+            c.textContent = "";
+        });
+
+        // 셀의 갯수 만큼의 범위에 해당하는 랜덤한 숫자를 생성
+        const rand = Math.floor(Math.random() * cells.length);
+
+        // 해당 숫자의 인덱스에 mole 클래스를 생성
+        cells[rand].classList.add("mole");
+        cells[rand].textContent = "🐹";
+
+        // currentIndex = rand; 붙이기(이 코드가 없으면 랜덤하게 정해지는 정답을 기록하지 못함)
+        currentIndex = rand;
+    }
+
+
+  
+
+  // 3. 게임 시작 버튼
+  /*
+  - 시작 버튼에 클릭 이벤트를 등록한다.
+  - 이미 게임이 진행 중이면(timer가 있으면) 함수를 종료한다.
+  - 게임 시작 시 score를 0으로 초기화하고 화면에 표시한다.
+  - setInterval()을 사용하여 0.8초마다 showMole() 함수를 실행한다.
+  - setTimeout()을 사용하여 10초 후 게임을 종료한다.
+  - 게임 종료 시: clearInterval()로 타이머 중지, timer를 null로 초기화,
+    alert()로 최종 점수를 표시한다.
+  */
+
+    // time 변수를 1씩 감소시키고, 해당 값을 화면에 표시하는 함수
+    function timeControl () {
+        timeLefted -= 1;
+        timeEl.textContent = timeLefted;
+    }
+
+
+    startBtn.addEventListener("click", () => {
+        // 이미 타이머 진행 중이면 종료
+        if(timer) return;
+
+        // 게임 시작시 스코어 0으로 초기화
+        score = 0;
+        scoreEl.textContent = score;
+
+        // 게임 시작시 남은 시간을 10으로 초기화
+        timeLefted = 10;
+        timeEl.textContent = 10;
+
+
+        // 0.8초마다 showMole 함수를 실행
+        timer = setInterval(showMole, 800);
+
+        // 1초마다 timeControl 함수를 실행
+        timeInterval = setInterval(timeControl, 1000);
+
+        setTimeout(()=> {
+            // 10초 경과 시 timer값과 timeInterval값 초기화
+            clearInterval(timer);
+            clearInterval(timeInterval);
+            timer = null;
+            timeInterval = null;
+
+            alert("게임 종료! 점수: " + score);
+        }, 10000)
+        
+        
+    })
+</script>
+
+</body>
+</html>
